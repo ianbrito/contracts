@@ -1,0 +1,59 @@
+version: "3.7"
+
+services:
+  app:
+    build:
+      args:
+        user: ${USER}
+        uid: 1000
+      context: ./
+      dockerfile: ./docker/app/Dockerfile
+    image: contracts
+    container_name: contracts-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+      - ./docker/app/php.ini:/usr/local/etc/php/php.ini
+    environment:
+      - TZ=America/Santarem
+    networks:
+      contracts:
+        ipv4_address: 172.16.58.4
+  db:
+    image: postgres:15-alpine
+    expose:
+      - 5432
+    container_name: contracts-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - /home/data/contracts:/var/lib/postgresql/data
+    networks:
+      contracts:
+        ipv4_address: 172.16.58.2
+
+  nginx:
+    image: nginx:alpine
+    container_name: contracts-nginx
+    restart: unless-stopped
+    expose:
+      - 80
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d/
+    environment:
+      - TZ=America/Santarem
+    networks:
+      contracts:
+        ipv4_address: 172.16.58.3
+
+networks:
+  contracts:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.58.0/28
